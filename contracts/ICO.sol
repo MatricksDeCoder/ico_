@@ -16,7 +16,6 @@ If they invest 1 ETH during the seed phase, their limit for the rest of the seed
 */
 
 contract SpaceCoin is ERC20, Ownable {
-
     bool public isTargetReached = false;
     bool public isPaused = false; // flag keep track if contributing/buying into ICO is paused by owner
     bool public isTaxable = true; //flag to decide if transfers can be taxed
@@ -49,7 +48,7 @@ contract SpaceCoin is ERC20, Ownable {
     event OwnerWithdraw(address indexed to, uint256 indexed amount);
 
     constructor(address _treasury) ERC20("Space Coin", "SPC") {
-        require(_treasury != address(0), "invalid address");
+        require(_treasury != address(0), "invalid address"); // no need zero address checks from 0.5.0
         uint256 _toMint = rate * targetTotal; //total SPC to be created for ICO
         uint256 _notMint = cap - _toMint; // remaining SPC of cap to be minted to owner initially
         treasury = _treasury;
@@ -77,6 +76,18 @@ contract SpaceCoin is ERC20, Ownable {
         isWhitelisted[_contributor] = _status;
         emit WhitelistUpdated(_contributor, _status);
     }
+
+    /*
+    function setWhitelistUsers(address[] _contributors, bool[] _states) onlyOwner {
+        uint256 _lenUsers = _contributors.length;
+        uint256 _lenStates = _states.length;
+        require(_lenUsers == _lenStates, "not the same");
+        for(uint256 i=0; i<_lenUsers; i++) {
+            setWhitelist(_contributors[i], _states[i]);
+        }
+    }
+
+    */
 
     /// @notice function set by owner to change the phases of ico
     /// @param _phase input to set new Phase
@@ -122,7 +133,7 @@ contract SpaceCoin is ERC20, Ownable {
     function buy() external payable {
         // keep track amount contributed up to limit....
         require(!isPaused, "ico contributions paused");
-        require(!isTargetReached,"required amount already raised");
+        require(!isTargetReached, "required amount already raised");
         address _contributor = _msgSender();
         uint256 _amount = msg.value;
         uint256 _target = targetTotal;
@@ -144,7 +155,7 @@ contract SpaceCoin is ERC20, Ownable {
             // additionally on reenter all effects updated before the call so no state change problems on reenter
             require(success, "error sending refund");
         }
-        emit Buy(_contributor, _amount,  _refund);
+        emit Buy(_contributor, _amount, _refund);
     }
 
     /// @notice function investors to claim SPC tokens (only in Open Phase)
@@ -174,7 +185,11 @@ contract SpaceCoin is ERC20, Ownable {
     */
 
     // @notice function to calculate and dedux tax from sender
-    function _handleTaxTransfer(address _from, address _to, uint256 _amount) internal {
+    function _handleTaxTransfer(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal {
         uint256 _taxAmount = (_amount * taxRate) / 100;
         uint256 _amountSend = _amount - _taxAmount;
         super._transfer(_from, _to, _amountSend);
